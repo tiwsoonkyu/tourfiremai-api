@@ -525,7 +525,7 @@ class LookupRequest(BaseModel):
 class ProgramResult(BaseModel):
     tour_id: str
     program_name: str
-    price_start: str
+    price_start: Optional[str] = None
     travel_dates: list[str]
     pdf_url: str
     pdf_text: str
@@ -569,12 +569,12 @@ async def lookup(req: LookupRequest):
 
         results = []
         for tid in tour_ids:
-            info = await fetch_tour_info(tid, client)
+            info = await fetch_tour_html_info(tid, client)
             pdf_text, pdf_summary = await fetch_pdf(tid, client, OCR_API_KEY)
             results.append(ProgramResult(
                 tour_id=tid,
                 program_name=info.get("program_name", ""),
-                price_start=info.get("price_start", ""),
+                price_start=info.get("price_start") or None,
                 travel_dates=info.get("travel_dates", []),
                 pdf_url=PDF_URL.format(id=tid.replace("ap", "")),
                 pdf_text=pdf_text[:4000],
@@ -589,7 +589,7 @@ async def lookup(req: LookupRequest):
 async def get_program(tour_id: str):
     """ดึงข้อมูลโปรแกรมเดี่ยวพร้อม PDF"""
     async with httpx.AsyncClient() as client:
-        info = await fetch_tour_info(tour_id, client)
+        info = await fetch_tour_html_info(tour_id, client)
         pdf_text, pdf_summary = await fetch_pdf(tour_id, client, OCR_API_KEY)
         return ProgramResult(
             tour_id=tour_id,
